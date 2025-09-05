@@ -161,3 +161,7 @@ cython_debug/
 
 .ruff_cache/
 *.zip
+build
+data
+lib_bpe_train_step2
+*.bak

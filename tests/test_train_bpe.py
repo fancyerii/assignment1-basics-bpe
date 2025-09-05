@@ -14,13 +14,14 @@ def test_train_bpe_speed():
     takes around 3 seconds.
     """
     input_path = FIXTURES_PATH / "corpus.en"
-    start_time = time.time()
+    start_time = time.perf_counter()
     _, _ = run_train_bpe(
         input_path=input_path,
         vocab_size=500,
         special_tokens=["<|endoftext|>"],
     )
-    end_time = time.time()
+    end_time = time.perf_counter()
+    print(f"test_train_bpe_speed: {end_time - start_time}")
     assert end_time - start_time < 1.5
 
 

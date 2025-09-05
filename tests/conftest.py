@@ -1,99 +1,12 @@
 from typing import TypeVar
-import numpy as np
 import pytest
 import os
 from pathlib import Path
-import torch
-from torch import Tensor
 import pickle
 
 
 class DEFAULT:
     pass
-
-
-_A = TypeVar("_A", np.ndarray, Tensor)
-
-
-def _canonicalize_array(arr: _A) -> np.ndarray:
-    if isinstance(arr, Tensor):
-        arr = arr.detach().cpu().numpy()
-    return arr
-
-
-class NumpySnapshot:
-    """Snapshot testing utility for NumPy arrays using .npz format."""
-
-    def __init__(
-        self,
-        snapshot_dir: str = "tests/_snapshots",
-        default_force_update: bool = False,
-        always_match_exact: bool = False,
-        default_test_name: str | None = None,
-    ):
-        self.snapshot_dir = Path(snapshot_dir)
-        os.makedirs(self.snapshot_dir, exist_ok=True)
-        self.default_force_update = default_force_update
-        self.always_match_exact = always_match_exact
-        self.default_test_name = default_test_name
-
-    def _get_snapshot_path(self, test_name: str) -> Path:
-        """Get the path to the snapshot file."""
-        return self.snapshot_dir / f"{test_name}.npz"
-
-    def assert_match(
-        self,
-        actual: _A | dict[str, _A],
-        rtol: float = 1e-4,
-        atol: float = 1e-2,
-        test_name: str | type[DEFAULT] = DEFAULT,
-        force_update: bool | type[DEFAULT] = DEFAULT,
-    ):
-        """
-        Assert that the actual array(s) matches the snapshot.
-
-        Args:
-            actual: Single NumPy array or dictionary of named arrays
-            test_name: The name of the test (used for the snapshot file)
-            update: If True, update the snapshot instead of comparing
-        """
-        if force_update is DEFAULT:
-            force_update = self.default_force_update
-        if self.always_match_exact:
-            rtol = atol = 0
-        if test_name is DEFAULT:
-            assert self.default_test_name is not None, "Test name must be provided or set as default"
-            test_name = self.default_test_name
-
-        snapshot_path = self._get_snapshot_path(test_name)
-
-        # Convert single array to dictionary for consistent handling
-        arrays_dict = actual if isinstance(actual, dict) else {"array": actual}
-        arrays_dict = {k: _canonicalize_array(v) for k, v in arrays_dict.items()}
-
-        # Load the snapshot
-        expected_arrays = dict(np.load(snapshot_path))
-
-        # Verify all expected arrays are present
-        missing_keys = set(arrays_dict.keys()) - set(expected_arrays.keys())
-        if missing_keys:
-            raise AssertionError(f"Keys {missing_keys} not found in snapshot for {test_name}")
-
-        # Verify all actual arrays are expected
-        extra_keys = set(expected_arrays.keys()) - set(arrays_dict.keys())
-        if extra_keys:
-            raise AssertionError(f"Snapshot contains extra keys {extra_keys} for {test_name}")
-
-        # Compare all arrays
-        for key in arrays_dict:
-            np.testing.assert_allclose(
-                _canonicalize_array(arrays_dict[key]),
-                expected_arrays[key],
-                rtol=rtol,
-                atol=atol,
-                err_msg=f"Array '{key}' does not match snapshot for {test_name}",
-            )
-
 
 class Snapshot:
     def __init__(
@@ -115,7 +28,7 @@ class Snapshot:
 
     def assert_match(
         self,
-        actual: _A | dict[str, _A],
+        actual,
         test_name: str | type[DEFAULT] = DEFAULT,
         force_update: bool | type[DEFAULT] = DEFAULT,
     ):
