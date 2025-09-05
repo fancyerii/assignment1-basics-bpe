@@ -1,0 +1,6 @@
+[submodule "cppupdate/abseil-cpp"]
+	path = cppupdate/abseil-cpp
+	url = https://github.com/abseil/abseil-cpp.git
+[submodule "cppupdate/emhash"]
+	path = cppupdate/emhash
+	url = https://github.com/ktprime/emhash.git
