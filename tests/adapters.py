@@ -1,5 +1,5 @@
 from __future__ import annotations
-from cs336_basics import bpe_v10_v2 as bpe
+from cs336_basics import bpe_v1 as bpe
 import os
 
 
