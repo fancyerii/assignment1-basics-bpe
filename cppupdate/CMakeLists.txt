@@ -51,10 +51,6 @@ target_include_directories(bpe_train_updater_omp_v6 PUBLIC
     "${PROJECT_SOURCE_DIR}/emhash"
 )
 
-add_executable(omp_test omp_test.cpp)
-target_link_libraries(omp_test PRIVATE OpenMP::OpenMP_CXX)
-
-add_executable(test_emhash test_emhash.cpp)
 
 add_executable(bpe_train_updater_fine_grained bpe_train_updater_fine_grained.cpp)
 
@@ -67,30 +63,17 @@ target_include_directories(bpe_train_updater_fine_grained_emhash8 PUBLIC
 add_executable(bpe_train_updater_fine_grained_absl bpe_train_updater_fine_grained_absl.cpp)
 target_link_libraries(bpe_train_updater_fine_grained_absl PRIVATE absl::flat_hash_map absl::hash)
 
-target_include_directories(test_emhash PUBLIC
-    "${PROJECT_SOURCE_DIR}/emhash"
-)
 
 target_link_libraries(bpe_train_updater_omp_v2 PRIVATE absl::flat_hash_map absl::hash)
 target_link_libraries(bpe_train_updater_omp_v2_hash PRIVATE absl::flat_hash_map absl::hash)
 target_link_libraries(bpe_train_updater_omp_v2_hash2 PRIVATE absl::flat_hash_map absl::hash)
 target_link_libraries(bpe_train_updater_opt_absl PRIVATE absl::flat_hash_map absl::hash)
-#add_executable(hello_world hello_world.cc)
-#target_link_libraries(hello_world absl::strings)
-#target_compile_options(bpe_train_updater_omp_v2 PRIVATE -pg)
-#target_link_options(bpe_train_updater_omp_v2 PRIVATE -pg) 
 
-#target_include_directories(bpe_train_updater PRIVATE ${CMAKE_SOURCE_DIR})
-#target_include_directories(bpe_train_updater_omp_v1 PRIVATE ${CMAKE_SOURCE_DIR})
-#target_include_directories(bpe_train_updater_omp_v2 PRIVATE ${CMAKE_SOURCE_DIR})
-#target_include_directories(jsontest PRIVATE ${CMAKE_SOURCE_DIR})
 
 target_link_libraries(bpe_train_updater_omp_v4 PRIVATE OpenMP::OpenMP_CXX)
 target_link_libraries(bpe_train_updater_omp_v4_debug PRIVATE OpenMP::OpenMP_CXX)
 target_link_libraries(bpe_train_updater_omp_v5 PRIVATE OpenMP::OpenMP_CXX)
 target_link_libraries(bpe_train_updater_omp_v6 PRIVATE OpenMP::OpenMP_CXX)
-# 设置编译选项，例如开启所有警告
-# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")
 add_custom_command(
     TARGET bpe_train_updater
     POST_BUILD
@@ -98,25 +81,3 @@ add_custom_command(
     COMMAND cp -a "${CMAKE_SOURCE_DIR}/data" "${CMAKE_BINARY_DIR}/data"
 )
 
-# add_library(bpe_train_step2 SHARED bpe_train_step2.cpp)
-# target_include_directories(bpe_train_step2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-# target_compile_definitions(bpe_train_step2 PUBLIC MY_LIBRARY_EXPORT)
-
-# install(TARGETS bpe_train_step2
-#         EXPORT bpe_train_step2_export_targets
-#         RUNTIME DESTINATION bin
-#         LIBRARY DESTINATION lib
-#         ARCHIVE DESTINATION lib)
-
-
-# # install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-# #         DESTINATION include/bpe_train_step2
-# #         FILES_MATCHING PATTERN "*.h")
-
-# install(FILES "bpe_train_step2.h" 
-#         DESTINATION include
-# )
-
-# install(FILES "emhash/hash_table8.hpp" 
-#         DESTINATION include/emhash
-# )
