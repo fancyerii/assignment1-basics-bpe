@@ -74,10 +74,10 @@ target_link_libraries(bpe_train_updater_omp_v4 PRIVATE OpenMP::OpenMP_CXX)
 target_link_libraries(bpe_train_updater_omp_v4_debug PRIVATE OpenMP::OpenMP_CXX)
 target_link_libraries(bpe_train_updater_omp_v5 PRIVATE OpenMP::OpenMP_CXX)
 target_link_libraries(bpe_train_updater_omp_v6 PRIVATE OpenMP::OpenMP_CXX)
-add_custom_command(
-    TARGET bpe_train_updater
-    POST_BUILD
-    # 调用系统 cp 命令来保留符号链接，这需要你的系统支持
-    COMMAND cp -a "${CMAKE_SOURCE_DIR}/data" "${CMAKE_BINARY_DIR}/data"
-)
+#add_custom_command(
+#    TARGET bpe_train_updater
+#    POST_BUILD
+     # 调用系统 cp 命令来保留符号链接，这需要你的系统支持
+#    COMMAND cp -a "${CMAKE_SOURCE_DIR}/data" "${CMAKE_BINARY_DIR}/data"
+#)
 
