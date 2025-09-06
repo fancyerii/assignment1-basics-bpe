@@ -15,7 +15,7 @@ def main():
     total_bytes = 0
     with open(sys.argv[1], "rb", buffering=buffer_size) as f:
         while True:
-            data = f.read(1024)
+            data = f.read(8192)
             if not data:
                 break
             if total_bytes == 0:

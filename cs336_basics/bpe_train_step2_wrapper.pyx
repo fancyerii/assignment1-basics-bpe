@@ -1,7 +1,7 @@
 # distutils: language = c++
 
 # 从 .pxd 文件导入声明
-from cs336_basics.bpe_train_step2_wrapper cimport bpe_train_step2, bpe_train_step2_v2
+from cs336_basics.bpe_train_step2_wrapper cimport bpe_train_step2, bpe_train_step2_v2, bpe_train_step2_v3
 from cs336_basics.bpe_train_step2_wrapper cimport pair_hash, HashMap
 from libcpp.vector cimport vector
 from libcpp.unordered_map cimport unordered_map
@@ -247,7 +247,7 @@ cpdef py_bpe_train_step2_v2(int vocab_size,
     return merges_cpp, vocabulary_cpp
 
 
-cpdef py_bpe_train_step2_v3(int vocab_size,
+cpdef py_bpe_train_step2_opt(int vocab_size,
                              vocabulary_py,
                              wordid_counts_py,
                              wordid_encodings_py,
@@ -274,6 +274,40 @@ cpdef py_bpe_train_step2_v3(int vocab_size,
     wordid_encodings_cpp = wordid_encodings_py
     # 调用 C++ 函数
     bpe_train_step2_v2(vocab_size,
+                    vocabulary_cpp,
+                    wordid_counts_cpp,
+                    wordid_encodings_cpp,
+                    merges_cpp)
+
+    return merges_cpp, vocabulary_cpp
+
+cpdef py_bpe_train_step2_v3(int vocab_size,
+                             vocabulary_py,
+                             wordid_counts_py,
+                             wordid_encodings_py,
+                             merges_py):
+
+    # 声明 C++ 容器
+    cdef unordered_map[int, vector[int]] vocabulary_cpp
+    cdef unordered_map[int, long long] wordid_counts_cpp
+    cdef unordered_map[int, vector[int]] wordid_encodings_cpp
+    cdef vector[pair[vector[int], vector[int]]] merges_cpp
+
+ 
+    # cdef vector[int] vector_value
+ 
+    
+    # for k, v in vocabulary_py.items():
+    #     value = list(v)
+    #     vector_value = value
+    #     vocabulary_cpp[k] = vector_value
+    vocabulary_cpp = vocabulary_py
+
+    wordid_counts_cpp = wordid_counts_py
+
+    wordid_encodings_cpp = wordid_encodings_py
+    # 调用 C++ 函数
+    bpe_train_step2_v3(vocab_size,
                     vocabulary_cpp,
                     wordid_counts_cpp,
                     wordid_encodings_cpp,

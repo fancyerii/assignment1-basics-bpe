@@ -64,6 +64,12 @@ add_executable(bpe_train_updater_fine_grained_absl bpe_train_updater_fine_graine
 target_link_libraries(bpe_train_updater_fine_grained_absl PRIVATE absl::flat_hash_map absl::hash)
 
 
+add_executable(bpe_train_updater_fine_grained_emhash8_set bpe_train_updater_fine_grained_emhash8_set.cpp)
+
+target_include_directories(bpe_train_updater_fine_grained_emhash8_set PUBLIC
+    "${PROJECT_SOURCE_DIR}/emhash"
+)
+
 target_link_libraries(bpe_train_updater_omp_v2 PRIVATE absl::flat_hash_map absl::hash)
 target_link_libraries(bpe_train_updater_omp_v2_hash PRIVATE absl::flat_hash_map absl::hash)
 target_link_libraries(bpe_train_updater_omp_v2_hash2 PRIVATE absl::flat_hash_map absl::hash)

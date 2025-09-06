@@ -9,7 +9,7 @@ def get_file_offsets(file_path, num_processes):
     print(f"{file_size=}")
     chunk_size = file_size // num_processes
     offsets = [0]
-    with open(file_path, 'r') as f:
+    with open(file_path, 'rb') as f:
         for i in range(1, num_processes):
             f.seek(chunk_size * i)
             # 找到下一个换行符，确保按行分割
@@ -21,22 +21,22 @@ def get_file_offsets(file_path, num_processes):
 def process_chunk(file_path, start_offset, end_offset):
     # 每个进程处理一个文件分块
     print(f"Process {os.getpid()} reading from {start_offset} to {end_offset}")
-    total_chars = 0
+    total_bytes = 0
     total_line = 0
-    with open(file_path, 'r') as f:
+    with open(file_path, 'rb') as f:
         f.seek(start_offset)
 
         while f.tell() < end_offset:
             line = f.readline()
             if not line:
                 break
-            total_chars += len(line)
+            total_bytes += len(line)
             total_line += 1
 
         if f.tell() != end_offset:
             print(f"bug f.tell={f.tell()}, {end_offset=}")
 
-    print(f"Process {os.getpid()} read {total_chars=}, {total_line=}")
+    print(f"Process {os.getpid()} read {total_bytes=}, {total_line=}")
 
 def main(file_path, num_processes):
     start_time = time.perf_counter()

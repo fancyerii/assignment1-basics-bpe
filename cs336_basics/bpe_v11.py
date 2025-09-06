@@ -3,7 +3,7 @@ from collections import defaultdict
 import multiprocessing as mp
 import time
 import argparse
-from cs336_basics.bpe_train_step2_wrapper import py_bpe_train_step2_opt
+from cs336_basics.bpe_train_step2_wrapper import py_bpe_train_step2_v3
 
 CHUNK_SIZE = 1024 *  50
 N_BYTES = 256

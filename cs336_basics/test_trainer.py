@@ -48,6 +48,7 @@ def main():
                  'bpe_v9_v2',
                  'bpe_v10',
                  'bpe_v10_v2',
+                 'bpe_v11',
                 ],
     )  
 
@@ -117,6 +118,8 @@ def main():
             from cs336_basics.bpe_v10 import BPE_Trainer
         case "bpe_v10_v2":
             from cs336_basics.bpe_v10_v2 import BPE_Trainer
+        case "bpe_v11":
+            from cs336_basics.bpe_v11 import BPE_Trainer
             
     bpe_trainer = BPE_Trainer()
     
