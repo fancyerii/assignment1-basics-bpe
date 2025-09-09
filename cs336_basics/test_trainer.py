@@ -50,6 +50,7 @@ def main():
                  'bpe_v10_v2',
                  'bpe_v11',
                  'bpe_v11_v2',
+                 'bpe_v3_bytes_time',
                 ],
     )  
 
@@ -123,6 +124,8 @@ def main():
             from cs336_basics.bpe_v11 import BPE_Trainer
         case "bpe_v11_v2":
             from cs336_basics.bpe_v11_v2 import BPE_Trainer
+        case "bpe_v3_bytes_time":
+            from cs336_basics.bpe_v3_bytes_time import BPE_Trainer
 
     bpe_trainer = BPE_Trainer()
     

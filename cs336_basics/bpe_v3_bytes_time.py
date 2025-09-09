@@ -4,7 +4,7 @@ import multiprocessing as mp
 import time
 import argparse
 
-CHUNK_SIZE = 1024 *  50
+CHUNK_SIZE = 1024 * 1024
 N_BYTES = 256
 NUM_COUNTER_PROCESS = 8
 NUM_MERGER_PROCESS = 1
@@ -26,23 +26,49 @@ class BPE_Trainer():
                             action="store_true",
                             help="Enable queue monitor. (default: False)"
         )        
+        parser.add_argument("--skip_merge",
+                            action="store_true",
+                            help="skip merge (default: False)"
+        ) 
+        parser.add_argument("--chunk_size", 
+                            type=str, 
+                            default=f"{CHUNK_SIZE}", 
+                            help="chunk_size")
         
         args = parser.parse_args(args)
         print(f"train: {args=}")
+        chunk_size = args.chunk_size.lower()
+        if chunk_size.endswith("kb"):
+            chunk_size = int(chunk_size[:-2].strip()) * 1024
+        elif chunk_size.endswith("mb"):
+            chunk_size = int(chunk_size[:-2].strip()) * 1024 * 1024
+        else:
+            chunk_size = int(chunk_size.strip())
+        print(f"{chunk_size=}")
+        
+
         num_counter = args.num_counter
         num_merger = args.num_merger
         do_monitor = args.do_monitor
 
         start_time = time.perf_counter()
-        word_counts = self._pretokenize_and_count_mp(input_path, special_tokens, num_counter, num_merger, do_monitor)
+        word_counts = self._pretokenize_and_count_mp(input_path, special_tokens, num_counter, 
+                                                     num_merger, do_monitor, chunk_size)
         end_time = time.perf_counter()
 
         print(f"_pretokenize_and_count_mp: {end_time - start_time}")
+
+
+
         vocabulary = {i: bytes([i]) for i in range(N_BYTES)} # every byte
         for i, token in enumerate(special_tokens):
             vocabulary[N_BYTES + i] = token.encode('utf-8')
         size = N_BYTES + len(special_tokens)
         merges = []
+
+        if args.skip_merge:
+            print(f"skip merge")
+            return vocabulary, merges 
 
         # initial word encodings are utf-8
         word_encodings = {}
@@ -53,19 +79,28 @@ class BPE_Trainer():
         pair_to_words = defaultdict(set)
         pair_counts = BPE_Trainer._count_pairs(word_counts, word_encodings, pair_strings, vocabulary, pair_to_words)
 
+        max_time = [0]
+        update_time = [0]
+        start_time = time.perf_counter()
         while size < vocab_size:
             BPE_Trainer._merge_a_pair(pair_counts, pair_strings, vocabulary,
                                    pair_to_words, word_counts, word_encodings,
-                                   merges, size)
+                                   merges, size, max_time, update_time)
             size += 1
-      
-        
+        end_time = time.perf_counter()
+        print(f"merge time: {end_time - start_time}")        
+        print(f"\tmax_time: {max_time[0]}, update_time: {update_time[0]}")
         return vocabulary, merges
 
     @staticmethod
     def _merge_a_pair(pair_counts, pair_strings, vocabulary, pair_to_words, 
-                   word_counts, word_encodings, merges, size):
+                   word_counts, word_encodings, merges, size,
+                   max_time, update_time):
+        start_time = time.perf_counter()
         merge_pair, max_count = max(pair_counts.items(), key = lambda x: (x[1], pair_strings[x[0]]))
+        end_time = time.perf_counter()
+        max_time[0] += (end_time - start_time)
+
         merge_bytes = vocabulary[merge_pair[0]] + vocabulary[merge_pair[1]]
 
         vocabulary[size] = merge_bytes
@@ -75,10 +110,12 @@ class BPE_Trainer():
         affected_words = pair_to_words[merge_pair]
         
         # update affected words' counts
+        start_time = time.perf_counter()
         BPE_Trainer._updated_affected_word_count(merge_pair, affected_words, word_encodings,
                                                     word_counts, pair_counts,
                                                     pair_to_words, new_id, pair_strings, vocabulary)
-
+        end_time = time.perf_counter()
+        update_time[0] += (end_time - start_time)
         merges.append((vocabulary[merge_pair[0]], vocabulary[merge_pair[1]]))
 
 
@@ -152,10 +189,11 @@ class BPE_Trainer():
         each end on a '<|endoftext|>' boundary.
         """
 
-        leftover = ""
+        leftover = b""
+        special_token_bytes = special_token.encode("utf-8")
         token_len = len(special_token)
 
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, "rb") as f:
             while True:
                 # read one chunk_size block of text
                 block = f.read(chunk_size)
@@ -165,10 +203,10 @@ class BPE_Trainer():
 
                 # combine leftover from previous iteration + new block
                 block = leftover + block
-                leftover = ""
+                leftover = b""
 
                 # find the *last* occurrence of the special token in 'block'
-                last_eot_idx = block.rfind(special_token)
+                last_eot_idx = block.rfind(special_token_bytes)
 
                 if last_eot_idx == -1:
                     # no complete document in this chunk
@@ -191,6 +229,7 @@ class BPE_Trainer():
             chunk = chunk_queue.get()
             if chunk == None:
                 break
+            chunk = chunk.decode("utf-8")
             blocks = re.split(special_token_pattern, chunk)
             counter = defaultdict(int)
             for block in blocks:
@@ -221,7 +260,7 @@ class BPE_Trainer():
             time.sleep(10)
 
     def _pretokenize_and_count_mp(self, input_path: str, special_tokens: list[str],
-                                  num_counter, num_merger, do_monitor):
+                                  num_counter, num_merger, do_monitor, chunk_size):
         # pre-compile regex
         pattern = re.compile(r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+""")
         # build split pattern
@@ -230,8 +269,8 @@ class BPE_Trainer():
         chunk_queue = mp.Queue(maxsize=1_000_000)
         counter_queue = mp.Queue(maxsize=1_000_000)
         merged_queue = mp.Queue(maxsize=num_merger)
-
         counter_processes = []
+     
         for i in range(num_counter):
             p = mp.Process(target=BPE_Trainer._chunk_counter_process, 
                         args=(chunk_queue, counter_queue, 
@@ -261,7 +300,7 @@ class BPE_Trainer():
 
 
 
-        for chunk in BPE_Trainer._chunk_documents_streaming(input_path):
+        for chunk in BPE_Trainer._chunk_documents_streaming(input_path, chunk_size):
             chunk_queue.put(chunk)
 
         for i in range(num_counter):
