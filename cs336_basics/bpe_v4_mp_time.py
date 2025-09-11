@@ -27,12 +27,12 @@ class BPE_Trainer():
         parser.add_argument("--do_monitor",
                             action="store_true",
                             help="Enable queue monitor. (default: False)"
-        )    
+        )        
         parser.add_argument("--num_max", 
                             type=int, 
                             default=NUM_MAX_PROCESS, 
-                            help="number of processes for max")    
-        
+                            help="number of processes for max")
+
         args = parser.parse_args(args)
         print(f"train: {args=}")
         num_counter = args.num_counter
@@ -59,63 +59,70 @@ class BPE_Trainer():
         pair_strings = {}
         pair_to_words = defaultdict(set)
         pair_counts = BPE_Trainer._count_pairs(word_counts, word_encodings, pair_strings, vocabulary, pair_to_words)
-        with mp.Pool(processes=num_max_processes) as pool:
 
-            times = [0] * 4
-            start_time = time.perf_counter()
-            while size < vocab_size:
-                BPE_Trainer._merge_a_pair(pair_counts, pair_strings, vocabulary,
-                                    pair_to_words, word_counts, word_encodings,
-                                    merges, size, pool, num_max_processes, times)
-                size += 1
-      
-            end_time = time.perf_counter()
-            print(f"merge time: {end_time - start_time:.2f}s")
-            print(f"copy_time: {times[0]:.2f}s, max_time: {times[1]:.2f}s, compute_time: {times[2]:.2f}s, copy_trunks_time: {times[3]:.2f}s")
+        times = [0] * 3
+        start_time = time.perf_counter()
+        while size < vocab_size:
+            BPE_Trainer._merge_a_pair(pair_counts, pair_strings, vocabulary,
+                                pair_to_words, word_counts, word_encodings,
+                                merges, size, num_max_processes, times)
+            size += 1
+        end_time = time.perf_counter()
+        print(f"merge time: {end_time - start_time:.2f}s")
+        print(f"copy_time: {times[0]:.2f}s, max_time: {times[1]:.2f}s, compute_time: {times[2]:.2f}s")
         return vocabulary, merges
     
     @staticmethod
-    def _find_max_pair(pair_strings, pair_counts):
+    def _find_max_pair(pair_strings, pair_counts, queue):
         start_time = time.perf_counter()
         max_pair, max_count = max(pair_counts, key = lambda x: (x[1], pair_strings[x[0]]))
-        end_time = time.perf_counter() 
-        return max_count, pair_strings[max_pair], max_pair, (end_time - start_time)
+        end_time = time.perf_counter()
+        queue.put((max_count, pair_strings[max_pair], max_pair, (end_time-start_time)))
 
     @staticmethod
-    def _parallel_max(pair_counts, pair_strings, pool, num_processes, times):
+    def _parallel_max(pair_counts, pair_strings, num_processes,
+                      times):
         # need a copy
         start_time = time.perf_counter()
         pair_counts = list(pair_counts.items())
         end_time = time.perf_counter()
         times[0] += (end_time - start_time)
 
-        start_time = time.perf_counter()
         chunk_size = len(pair_counts) // num_processes
         data_chunks = [pair_counts[i:i + chunk_size] for i in range(0, len(pair_counts), chunk_size)]
+        
 
         if len(data_chunks) > num_processes:
             data_chunks[num_processes - 1].extend(data_chunks.pop())
-        end_time = time.perf_counter()
-        times[3] += (end_time - start_time)
 
         start_time = time.perf_counter()
-        find_max_pair = partial(BPE_Trainer._find_max_pair, pair_strings)
-        local_maxes = pool.map(find_max_pair, data_chunks)
+        processes = []
+        queue = mp.Queue()
+        for i in range(num_processes):
+            p = mp.Process(target=BPE_Trainer._find_max_pair, 
+                        args=(pair_strings, data_chunks[i], queue),
+                        name=f"find_max_pair-{i+1}")
+            p.start()
+            processes.append(p)        
+        for p in processes:
+            p.join()
         end_time = time.perf_counter()
         times[1] += (end_time - start_time)
 
-        computing_time = max([r[-1] for r in local_maxes])
-        times[2] += computing_time
-            
-        return max(local_maxes)[:-1]
+        local_maxes = []
+        local_times = []
+        for i in range(num_processes):
+            t = queue.get()
+            local_times.append(t[-1])
+            local_maxes.append(t[:-1])
+        times[2] += max(local_times)
+        return max(local_maxes)
 
     @staticmethod
     def _merge_a_pair(pair_counts, pair_strings, vocabulary, pair_to_words, 
-                   word_counts, word_encodings, merges, size, pool, num_processes,
-                   times):
-
-        _, _, merge_pair = BPE_Trainer._parallel_max(pair_counts, pair_strings, pool, num_processes, times)
-
+                   word_counts, word_encodings, merges, size, num_processes,
+                    times):
+        _, _, merge_pair = BPE_Trainer._parallel_max(pair_counts, pair_strings, num_processes, times)
 
         merge_bytes = vocabulary[merge_pair[0]] + vocabulary[merge_pair[1]]
 

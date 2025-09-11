@@ -105,18 +105,8 @@ class BPE_Trainer():
     @staticmethod
     def _merge_a_pair(pair_counts, pair_strings, vocabulary, pair_to_words, 
                    word_counts, word_encodings, merges, size, num_processes):
-        start_time = time.perf_counter()
-        merge_pair, max_count = max(pair_counts.items(), key = lambda x: (x[1], pair_strings[x[0]]))
-        end_time = time.perf_counter()
-        print(f"original max: {end_time - start_time}")
-        start_time = time.perf_counter()
-        max_count2, pair_str, merge_pair2 = BPE_Trainer._parallel_max(pair_counts, pair_strings, num_processes)
-        end_time = time.perf_counter()
-        print(f"parallel max: {end_time - start_time}")
-        assert merge_pair == merge_pair2
-        assert max_count == max_count2
-        # max_count, _, merge_pair = BPE_Trainer._parallel_max(pair_counts, pair_strings, num_processes)
-        
+        _, _, merge_pair = BPE_Trainer._parallel_max(pair_counts, pair_strings, num_processes)
+
         merge_bytes = vocabulary[merge_pair[0]] + vocabulary[merge_pair[1]]
 
         vocabulary[size] = merge_bytes
