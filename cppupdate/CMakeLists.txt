@@ -92,3 +92,6 @@ target_link_libraries(bpe_train_updater_omp_v6 PRIVATE OpenMP::OpenMP_CXX)
 #    COMMAND cp -a "${CMAKE_SOURCE_DIR}/data" "${CMAKE_BINARY_DIR}/data"
 #)
 
+add_executable(test_unordered_map_traverse_speed test_unordered_map_traverse_speed.cpp)
+add_executable(bpe_train_updater_max_debug bpe_train_updater_max_debug.cpp)
+add_executable(bpe_train_updater_omp_v3_max_debug bpe_train_updater_omp_v3_max_debug.cpp)
