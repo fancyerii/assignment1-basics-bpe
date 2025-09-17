@@ -23,6 +23,8 @@ add_executable(bpe_train_updater_omp_v4 bpe_train_updater_omp_v4.cpp)
 add_executable(bpe_train_updater_omp_v4_debug bpe_train_updater_omp_v4_debug.cpp)
 add_executable(bpe_train_updater_omp_v5 bpe_train_updater_omp_v5.cpp)
 add_executable(bpe_train_updater_omp_v6 bpe_train_updater_omp_v6.cpp)
+add_executable(bpe_train_updater_omp_v7 bpe_train_updater_omp_v7.cpp)
+add_executable(bpe_train_updater_omp_v8 bpe_train_updater_omp_v8.cpp)
 
 add_executable(bpe_train_updater_hash bpe_train_updater_hash.cpp)
 add_executable(bpe_train_updater_omp_v1_hash bpe_train_updater_omp_v1_hash.cpp)
@@ -85,6 +87,8 @@ target_link_libraries(bpe_train_updater_omp_v4 PRIVATE OpenMP::OpenMP_CXX)
 target_link_libraries(bpe_train_updater_omp_v4_debug PRIVATE OpenMP::OpenMP_CXX)
 target_link_libraries(bpe_train_updater_omp_v5 PRIVATE OpenMP::OpenMP_CXX)
 target_link_libraries(bpe_train_updater_omp_v6 PRIVATE OpenMP::OpenMP_CXX)
+target_link_libraries(bpe_train_updater_omp_v7 PRIVATE OpenMP::OpenMP_CXX)
+target_link_libraries(bpe_train_updater_omp_v8 PRIVATE OpenMP::OpenMP_CXX)
 #add_custom_command(
 #    TARGET bpe_train_updater
 #    POST_BUILD
