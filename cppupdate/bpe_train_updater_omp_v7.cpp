@@ -219,7 +219,7 @@ struct LocalMax {
     char padding[CACHE_LINE];
 };
 
-void compare_and_update(const LocalMax& curr, LocalMax& max){
+inline void compare_and_update(const LocalMax& curr, LocalMax& max){
     if(curr.max_count > max.max_count){
         max = curr;
     }else if(curr.max_count == max.max_count){
