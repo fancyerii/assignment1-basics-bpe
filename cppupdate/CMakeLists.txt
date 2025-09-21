@@ -99,3 +99,19 @@ target_link_libraries(bpe_train_updater_omp_v8 PRIVATE OpenMP::OpenMP_CXX)
 add_executable(test_unordered_map_traverse_speed test_unordered_map_traverse_speed.cpp)
 add_executable(bpe_train_updater_max_debug bpe_train_updater_max_debug.cpp)
 add_executable(bpe_train_updater_omp_v3_max_debug bpe_train_updater_omp_v3_max_debug.cpp)
+
+add_executable(test_max_heap test_max_heap.cpp max_heap.cpp)
+
+add_executable(bpe_train_updater_fine_grained_heap bpe_train_updater_fine_grained_heap.cpp max_heap.cpp)
+add_executable(bpe_train_updater_fine_grained_heap_emhash8_set bpe_train_updater_fine_grained_heap_emhash8_set.cpp max_heap.cpp)
+
+target_include_directories(bpe_train_updater_fine_grained_heap_emhash8_set PUBLIC
+    "${PROJECT_SOURCE_DIR}/emhash"
+)
+
+
+add_executable(bpe_train_updater_fine_grained_heap_emhash8_set9 bpe_train_updater_fine_grained_heap_emhash8_set9.cpp max_heap.cpp)
+
+target_include_directories(bpe_train_updater_fine_grained_heap_emhash8_set9 PUBLIC
+    "${PROJECT_SOURCE_DIR}/emhash"
+)

@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 
-add_library(bpe_train_step2 SHARED bpe_train_step2.cpp)
+add_library(bpe_train_step2 SHARED bpe_train_step2.cpp max_heap.cpp)
 target_include_directories(bpe_train_step2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_compile_definitions(bpe_train_step2 PUBLIC MY_LIBRARY_EXPORT)
 

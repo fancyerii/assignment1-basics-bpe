@@ -2,7 +2,6 @@
 #include <unordered_map>
 #include <random>
 #include <chrono>
-#include <vector>
 #include <utility>
 
 int main(){
@@ -30,7 +29,7 @@ int main(){
     }
 
     // 5. 打印生成的 map
-    std::vector<std::pair<int,int>> vec1;
+
     std::cout << "生成的随机 unordered_map 包含 " << random_map.size() << " 个元素:" << std::endl;
     std::cout << "for遍历" << std::endl;
     for (const auto& pair : random_map) {
@@ -49,4 +48,5 @@ int main(){
             std::cout << "\t" << it->first << "," << it->second << std::endl;
         }
     }
+
 }
