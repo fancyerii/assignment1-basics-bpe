@@ -44,3 +44,9 @@ cdef extern from "../lib_bpe_train_step2/include/bpe_train_step2.h":
                          const unordered_map[int, long long] & wordid_counts,
                          unordered_map[int, vector[int]] & wordid_encodings,
                          vector[pair[vector[int], vector[int]]] & merges) except +
+
+    void bpe_train_step2_v5(int vocab_size,
+                         unordered_map[int, vector[int]] & vocabulary,
+                         const unordered_map[int, long long] & wordid_counts,
+                         unordered_map[int, vector[int]] & wordid_encodings,
+                         vector[pair[vector[int], vector[int]]] & merges) except +

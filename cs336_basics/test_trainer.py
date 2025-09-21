@@ -54,7 +54,9 @@ def main():
                  'bpe_v11_bytes',
                  'bpe_v4_mp_time',
                  'bpe_v4_mp_deepcopy_time',
-                 'bpe_v4_mp_spawn_time'
+                 'bpe_v4_mp_spawn_time',
+                 'bpe_v11_v3',
+                 'bpe_v11_v3_bytes'
                 ],
     )  
 
@@ -131,13 +133,17 @@ def main():
         case "bpe_v3_bytes_time":
             from cs336_basics.bpe_v3_bytes_time import BPE_Trainer
         case "bpe_v11_bytes":
-            from bpe_v11_bytes import BPE_Trainer
+            from cs336_basics.bpe_v11_bytes import BPE_Trainer
         case "bpe_v4_mp_time":
-            from bpe_v4_mp_time import BPE_Trainer
+            from cs336_basics.bpe_v4_mp_time import BPE_Trainer
         case "bpe_v4_mp_deepcopy_time":
-            from bpe_v4_mp_deepcopy_time import BPE_Trainer
+            from cs336_basics.bpe_v4_mp_deepcopy_time import BPE_Trainer
         case "bpe_v4_mp_spawn_time":
-            from bpe_v4_mp_spawn_time import BPE_Trainer
+            from cs336_basics.bpe_v4_mp_spawn_time import BPE_Trainer
+        case "bpe_v11_v3":
+            from cs336_basics.bpe_v11_v3 import BPE_Trainer
+        case "bpe_v11_v3_bytes":
+            from cs336_basics.bpe_v11_v3_bytes import BPE_Trainer
 
     bpe_trainer = BPE_Trainer()
     
