@@ -3,7 +3,7 @@ from collections import defaultdict
 import multiprocessing as mp
 import time
 import argparse
-from cs336_basics import maxheap_heapq as maxheap
+from cs336_basics import maxheap_py as maxheap
 
 CHUNK_SIZE = 1024 *  50
 N_BYTES = 256
@@ -53,25 +53,38 @@ class BPE_Trainer():
 
         pair_strings = {}
         pair_to_words = defaultdict(set)
+        start_time = time.perf_counter()
         pair_counts = BPE_Trainer._count_pairs(word_counts, word_encodings, pair_strings, vocabulary, pair_to_words)
+        end_time = time.perf_counter()
+        print(f"_count_pairs: {end_time - start_time:.2f}s")
 
+        start_time = time.perf_counter()
         pair_heap = []
         for pair, count in pair_counts.items():
             maxheap.heappush(pair_heap, (count, pair_strings[pair], pair))
+        end_time = time.perf_counter()
+        print(f"make heap: {end_time - start_time:.2f}s")
 
+        max_time = [0]
+        update_time = [0]
+        start_time = time.perf_counter()
         while size < vocab_size:
             BPE_Trainer._merge_a_pair(pair_counts, pair_strings, vocabulary,
                                    pair_to_words, word_counts, word_encodings,
-                                   merges, size, pair_heap)
+                                   merges, size, pair_heap, max_time, update_time)
             size += 1
-      
+        end_time = time.perf_counter()
+        print(f"merge time: {end_time - start_time}")         
+        print(f"\tmax_time: {max_time[0]}, update_time: {update_time[0]}")      
         
         return vocabulary, merges
 
     @staticmethod
     def _merge_a_pair(pair_counts, pair_strings, vocabulary, pair_to_words, 
-                   word_counts, word_encodings, merges, size, pair_heap):
+                   word_counts, word_encodings, merges, size, pair_heap,
+                   max_time, update_time):
         
+        start_time = time.perf_counter()
         while pair_heap:
             count, string_priority, merge_pair = maxheap.heappop(pair_heap)
             
@@ -86,7 +99,10 @@ class BPE_Trainer():
         else:
             # no valid pairs found
             return False
+        end_time = time.perf_counter()
+        max_time[0] += (end_time - start_time)
 
+        start_time = time.perf_counter()
 
         merge_bytes = vocabulary[merge_pair[0]] + vocabulary[merge_pair[1]]
 
@@ -101,7 +117,8 @@ class BPE_Trainer():
                                                     word_counts, pair_counts,
                                                     pair_to_words, new_id, pair_strings, 
                                                     vocabulary, pair_heap)
-
+        end_time = time.perf_counter()
+        update_time[0] += (end_time - start_time)
         merges.append((vocabulary[merge_pair[0]], vocabulary[merge_pair[1]]))
 
 

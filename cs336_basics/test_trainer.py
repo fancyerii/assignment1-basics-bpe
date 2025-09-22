@@ -56,7 +56,9 @@ def main():
                  'bpe_v4_mp_deepcopy_time',
                  'bpe_v4_mp_spawn_time',
                  'bpe_v11_v3',
-                 'bpe_v11_v3_bytes'
+                 'bpe_v11_v3_bytes',
+                 'bpe_v7_heapify',
+                 'bpe_v6_time'
                 ],
     )  
 
@@ -144,6 +146,10 @@ def main():
             from cs336_basics.bpe_v11_v3 import BPE_Trainer
         case "bpe_v11_v3_bytes":
             from cs336_basics.bpe_v11_v3_bytes import BPE_Trainer
+        case "bpe_v7_heapify":
+            from cs336_basics.bpe_v7_heapify import BPE_Trainer
+        case "bpe_v6_time":
+            from cs336_basics.bpe_v6_time import BPE_Trainer
 
     bpe_trainer = BPE_Trainer()
     
