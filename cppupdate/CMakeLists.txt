@@ -115,3 +115,9 @@ add_executable(bpe_train_updater_fine_grained_heap_emhash8_set9 bpe_train_update
 target_include_directories(bpe_train_updater_fine_grained_heap_emhash8_set9 PUBLIC
     "${PROJECT_SOURCE_DIR}/emhash"
 )
+
+add_executable(bpe_train_updater_fine_grained_heap_emhash8 bpe_train_updater_fine_grained_heap_emhash8.cpp max_heap.cpp)
+
+target_include_directories(bpe_train_updater_fine_grained_heap_emhash8 PUBLIC
+    "${PROJECT_SOURCE_DIR}/emhash"
+)

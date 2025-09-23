@@ -5,8 +5,9 @@ import random
 import time
 
 def main():
-    N = 1_000
-    M = 100_000
+    N = 1_0
+    M = 10_000
+    K = 500_000
 
     time1 = 0
     time2 = 0
@@ -16,12 +17,11 @@ def main():
         arr_copy = arr[:]
         arr_copy2 = arr[:]
 
-        added = [random.randint(-100_000_000, 100_000_000) for _ in range(100)]
+        added = [random.randint(-100_000_000, 100_000_000) for _ in range(K)]
 
         stime = time.perf_counter()
         maxheap_py.heapify(arr)
         for z in added:
-            x = maxheap_py.heappop(arr)
             maxheap_py.heappush(arr, z)
         etime = time.perf_counter()
         time1 +=(etime - stime)
@@ -29,7 +29,6 @@ def main():
         stime = time.perf_counter()
         maxheap_heapq.heapify(arr_copy)
         for z in added:
-            x = maxheap_heapq.heappop(arr_copy)
             maxheap_heapq.heappush(arr_copy, z)
         etime = time.perf_counter()
         time2 +=(etime - stime)
@@ -37,7 +36,6 @@ def main():
         stime = time.perf_counter()
         maxheapq.heapify(arr_copy2)
         for z in added:
-            x = maxheapq.heappop(arr_copy2)
             maxheapq.heappush(arr_copy2, z)
         etime = time.perf_counter()
         time3 +=(etime - stime)

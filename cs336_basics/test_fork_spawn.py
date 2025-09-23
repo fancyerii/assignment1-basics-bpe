@@ -1,4 +1,5 @@
-import time, multiprocessing as mp
+import time
+import multiprocessing as mp
 
 def worker(lst):
     t0 = time.perf_counter()

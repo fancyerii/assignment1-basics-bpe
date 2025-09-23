@@ -3,7 +3,7 @@ from collections import defaultdict
 import multiprocessing as mp
 import time
 import argparse
-from cs336_basics import maxheap_py as maxheap
+from cs336_basics import maxheap_heapq as maxheap
 
 CHUNK_SIZE = 1024 *  50
 N_BYTES = 256
@@ -67,7 +67,6 @@ class BPE_Trainer():
 
         max_time = [0]
         update_time = [0]
-        #heap_push_time = [0]
         start_time = time.perf_counter()
         while size < vocab_size:
             BPE_Trainer._merge_a_pair(pair_counts, pair_strings, vocabulary,
@@ -230,8 +229,8 @@ class BPE_Trainer():
         for new_pair in new_pairs:
             if new_pair not in pair_strings:
                 pair_strings[new_pair] = (vocabulary[new_pair[0]], vocabulary[new_pair[1]])
+                
             maxheap.heappush(pair_heap, (pair_counts[new_pair], pair_strings[new_pair], new_pair))
-
 
 
     @staticmethod    
