@@ -121,3 +121,24 @@ add_executable(bpe_train_updater_fine_grained_heap_emhash8 bpe_train_updater_fin
 target_include_directories(bpe_train_updater_fine_grained_heap_emhash8 PUBLIC
     "${PROJECT_SOURCE_DIR}/emhash"
 )
+
+
+add_executable(bpe_train_updater_fine_grained_heap_opt bpe_train_updater_fine_grained_heap_opt.cpp max_heap.cpp)
+add_executable(bpe_train_updater_fine_grained_heap_emhash8_set_opt bpe_train_updater_fine_grained_heap_emhash8_set_opt.cpp max_heap.cpp)
+
+target_include_directories(bpe_train_updater_fine_grained_heap_emhash8_set_opt PUBLIC
+    "${PROJECT_SOURCE_DIR}/emhash"
+)
+
+
+add_executable(bpe_train_updater_fine_grained_heap_emhash8_set9_opt bpe_train_updater_fine_grained_heap_emhash8_set9_opt.cpp max_heap.cpp)
+
+target_include_directories(bpe_train_updater_fine_grained_heap_emhash8_set9_opt PUBLIC
+    "${PROJECT_SOURCE_DIR}/emhash"
+)
+
+add_executable(bpe_train_updater_fine_grained_heap_emhash8_opt bpe_train_updater_fine_grained_heap_emhash8_opt.cpp max_heap.cpp)
+
+target_include_directories(bpe_train_updater_fine_grained_heap_emhash8_opt PUBLIC
+    "${PROJECT_SOURCE_DIR}/emhash"
+)
