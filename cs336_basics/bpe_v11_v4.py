@@ -3,7 +3,7 @@ from collections import defaultdict
 import multiprocessing as mp
 import time
 import argparse
-from cs336_basics import maxheap_heapq as maxheap
+from cs336_basics.bpe_train_step2_wrapper import py_bpe_train_step2_v6
 
 CHUNK_SIZE = 1024 *  50
 N_BYTES = 256
@@ -27,19 +27,20 @@ class BPE_Trainer():
                             action="store_true",
                             help="Enable queue monitor. (default: False)"
         )        
-
-
+        
         args = parser.parse_args(args)
         print(f"train: {args=}")
         num_counter = args.num_counter
         num_merger = args.num_merger
-        do_monitor = args.do_monitor 
+        do_monitor = args.do_monitor
 
         start_time = time.perf_counter()
         word_counts = self._pretokenize_and_count_mp(input_path, special_tokens, num_counter, num_merger, do_monitor)
         end_time = time.perf_counter()
 
         print(f"_pretokenize_and_count_mp: {end_time - start_time}")
+
+        start_time = time.time()
         vocabulary = {i: bytes([i]) for i in range(N_BYTES)} # every byte
         for i, token in enumerate(special_tokens):
             vocabulary[N_BYTES + i] = token.encode('utf-8')
@@ -51,176 +52,26 @@ class BPE_Trainer():
         for word in word_counts:
             word_encodings[word] = list(word.encode('utf-8'))
 
-        pair_strings = {}
-        pair_to_words = defaultdict(set)
-        start_time = time.perf_counter()
-        pair_counts = BPE_Trainer._count_pairs(word_counts, word_encodings, pair_strings, vocabulary, pair_to_words)
-        end_time = time.perf_counter()
-        print(f"_count_pairs: {end_time - start_time:.2f}s")
+        word_ids = {word:id for id, word in enumerate(word_counts)}
 
-        start_time = time.perf_counter()
-        pair_heap = []
-        for pair, count in pair_counts.items():
-            maxheap.heappush(pair_heap, (count, pair_strings[pair], pair))
-        end_time = time.perf_counter()
-        print(f"make heap: {end_time - start_time:.2f}s")
+        wordid_counts = {word_ids[word]:count for word, count in word_counts.items()}
 
-        start_time = time.perf_counter()
-        while size < vocab_size:
-            BPE_Trainer._merge_a_pair(pair_counts, pair_strings, vocabulary,
-                                   pair_to_words, word_counts, word_encodings,
-                                   merges, size, pair_heap)
-            size += 1
-        end_time = time.perf_counter()
-        print(f"merge time: {end_time - start_time}")               
-        
+        wordid_encodings = {word_ids[word]:encoding for word, encoding in word_encodings.items()}      
+
+        end_time = time.time()
+        print(f"prepare & convert: {end_time - start_time:.2f}")
+        start_time = time.time()
+        merges_cpp, vocabulary_cpp = py_bpe_train_step2_v6(vocab_size, 
+                             vocabulary,
+                             wordid_counts,
+                             wordid_encodings,
+                             merges)
+        end_time = time.time()
+        print(f"py_bpe_train_step2: {end_time - start_time:.2f}")
+
+        vocabulary = {k:bytes(v) for k, v in vocabulary_cpp.items()}
+        merges = [(bytes(arr[0]), bytes(arr[1])) for arr in merges_cpp]
         return vocabulary, merges
-
-    @staticmethod
-    def _merge_a_pair(pair_counts, pair_strings, vocabulary, pair_to_words, 
-                   word_counts, word_encodings, merges, size, pair_heap):
-        
-        while pair_heap:
-            count, string_priority, merge_pair = maxheap.heappop(pair_heap)
-            
-            # check pair validity
-            if merge_pair in pair_counts and pair_counts[merge_pair] == count:
-                break
-            elif merge_pair in pair_counts:
-                # update count (lazily)
-                maxheap.heappush(pair_heap, (pair_counts[merge_pair], 
-                                               string_priority, 
-                                               merge_pair))
-        else:
-            # no valid pairs found
-            return False
-
-        merge_bytes = vocabulary[merge_pair[0]] + vocabulary[merge_pair[1]]
-
-        vocabulary[size] = merge_bytes
-        new_id = size
-
-
-        affected_words = pair_to_words[merge_pair]
-        
-        # update affected words' counts
-        BPE_Trainer._updated_affected_word_count(merge_pair, affected_words, word_encodings,
-                                                    word_counts, pair_counts,
-                                                    pair_to_words, new_id, pair_strings, 
-                                                    vocabulary, pair_heap)
-
-        merges.append((vocabulary[merge_pair[0]], vocabulary[merge_pair[1]]))
-
-
-    @staticmethod
-    def fine_grained_pair_counter_diff(affected_words, word_encodings, word_counts, merge_pair, diff_pairs, new_id, pair_to_words, new_pairs):
-        for word in affected_words:
-            word_tokens = word_encodings[word]
-            wc = word_counts[word]
-
-            # find first and last pairs
-            idx = 0
-            unaffected_pairs = set()
-            while idx < len(word_tokens) - 1:
-                if word_tokens[idx] == merge_pair[0] and word_tokens[idx+1] == merge_pair[1]:
-                    first_idx = idx
-                    break
-                idx += 1
-            else:
-                print(f"bug {merge_pair}, {word}, {word_tokens}")
-                raise
-            # assert first_idx exists
-
-            idx = len(word_tokens) - 2
-            while idx > first_idx + 1:
-                if word_tokens[idx] == merge_pair[0] and word_tokens[idx+1] == merge_pair[1]:
-                    last_idx = idx
-                    break
-                idx -= 1
-            else:
-                last_idx = first_idx
-
-            start_idx = max(0, first_idx - 1) # inclusive
-            end_idx = min(last_idx + 3, len(word_tokens)) # exclusive
-
-            # unaffected [0, start_idx)
-            
-            for i in range(start_idx):
-                pair = word_tokens[i], word_tokens[i + 1]
-                unaffected_pairs.add(pair)
-            # unaffected [end_idx-1, :-1]
-            for i in range(end_idx - 1, len(word_tokens) - 1):
-                pair = word_tokens[i], word_tokens[i + 1]
-                unaffected_pairs.add(pair)                
-
-            affected_tokens = word_tokens[start_idx: end_idx]
-            for i in range(len(affected_tokens) - 1):
-                old_pair = (affected_tokens[i], affected_tokens[i + 1])
-                diff_pairs[old_pair] -= wc 
-                if old_pair not in unaffected_pairs:   
-                    pair_to_words[old_pair].discard(word)
-                    
-
-            new_tokens = []
-            all_new_tokens = []
-            for i in range(start_idx):
-                all_new_tokens.append(word_tokens[i])
-            
-            i = 0
-
-            # account for multiple occurrences of the pair
-            while i < len(affected_tokens):
-                if i < len(affected_tokens) - 1 and (affected_tokens[i], affected_tokens[i + 1]) == merge_pair:
-                    new_tokens.append(new_id)
-                    all_new_tokens.append(new_id)
-                    # jump past pair
-                    i += 2
-                else:
-                    new_tokens.append(affected_tokens[i])
-                    all_new_tokens.append(affected_tokens[i])
-                    i += 1
-            
-
-            for i in range(end_idx, len(word_tokens)):
-                all_new_tokens.append(word_tokens[i])
-            
-            word_encodings[word] = all_new_tokens
-
-            # add new pairs from the updated word
-            for i in range(len(new_tokens) - 1):
-                new_pair = (new_tokens[i], new_tokens[i + 1])
-
-                diff_pairs[new_pair] += wc
-                pair_to_words[new_pair].add(word)
-
-                new_pairs.add(new_pair)
-
-
-    @staticmethod
-    def _updated_affected_word_count(merge_pair, affected_words, word_encodings, 
-                                     word_counts, pair_counts, pair_to_words, 
-                                     new_id, pair_strings, vocabulary, pair_heap):
-        # we may update/delete words when iterate it.
-        affected_words = affected_words.copy()
-        diff_pairs = defaultdict(int)
-
-        new_pairs = set() 
-        BPE_Trainer.fine_grained_pair_counter_diff(affected_words, word_encodings, word_counts, merge_pair, diff_pairs, 
-                             new_id, pair_to_words, new_pairs)
-        for pair, count in diff_pairs.items():
-            if count == 0: continue
-            pair_counts[pair] += count
-            if pair_counts[pair] <= 0: # should not less than 0!
-                del pair_counts[pair]
-                pair_to_words.pop(pair, None)
-
-
-        for new_pair in new_pairs:
-            if new_pair not in pair_strings:
-                pair_strings[new_pair] = (vocabulary[new_pair[0]], vocabulary[new_pair[1]])
-                
-            maxheap.heappush(pair_heap, (pair_counts[new_pair], pair_strings[new_pair], new_pair))
-
 
     @staticmethod    
     def _count_pairs(word_counts, word_encodings, pair_strings, vocabulary, pair_to_words):
@@ -393,3 +244,13 @@ class BPE_Trainer():
             monitor_process.join()   
 
         return word_counts
+    
+if __name__ == '__main__':
+    data_path = "./data/TinyStoriesV2-GPT4-valid.txt"
+    bpe_trainer = BPE_Trainer()
+    vocab_size = 10000
+    start_time = time.perf_counter()
+    vocabulary, merges = bpe_trainer.train(data_path, vocab_size,["<|endoftext|>"], *("-c 1".split()))
+    end_time = time.perf_counter()
+    print(f"TinyStories time: {end_time - start_time:.2f} seconds")
+    print(merges[:100])    

@@ -1074,3 +1074,234 @@ void bpe_train_step2_v5(int vocab_size,
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
     std::cout << "bpe_train_step2: " << duration.count() << "ms." << std::endl;
 }
+
+
+void fine_grained_pair_counter_diff_v6(const emhash9::HashSet<int>& affected_words,
+                                    std::unordered_map<int, std::vector<int>> & wordid_encodings,
+                                    const std::unordered_map<int, long long> & wordid_counts,
+                                    const std::pair<int, int>& merge_pair,
+                                    int new_id,
+                                    emhash8::HashMap<std::pair<int, int>, emhash9::HashSet<int>, pair_hash> & pair_wordids,
+                                    std::unordered_map<std::pair<int, int>, int, pair_hash> & diff_pairs){
+
+    for(int wordid : affected_words){
+        const auto& word_tokens = wordid_encodings[wordid];
+        auto& wc = wordid_counts.at(wordid);  
+        
+        int idx = 0;
+        std::unordered_set<std::pair<int, int>, pair_hash> unaffected_pairs;
+
+        int token_size_minus_1 = word_tokens.size() - 1;
+        int token_size = word_tokens.size();
+        int first_idx = -1;
+        while(idx < token_size_minus_1){
+            if(word_tokens[idx] == merge_pair.first &&
+               word_tokens[idx + 1] == merge_pair.second){
+                first_idx = idx;
+                break;
+            }
+            ++idx;
+        }
+        if(first_idx == -1){
+            std::stringstream ss;
+            ss << "bug (" << merge_pair.first << "," << merge_pair.second
+                      << "), " << wordid << ", [";
+            for(auto token : word_tokens){
+                ss << token << " ";
+            }
+            ss << "]" << std::endl;
+            throw std::runtime_error(ss.str());
+        }
+
+        idx = word_tokens.size() - 2;
+        int last_idx = -1;
+        while(idx > first_idx + 1){
+            if(word_tokens[idx] == merge_pair.first &&
+               word_tokens[idx + 1 == merge_pair.second]){
+                last_idx = idx;
+                break;
+            }
+            --idx;
+        }
+        if(last_idx == -1){
+            last_idx = first_idx;
+        }
+
+        int start_idx = std::max(0, first_idx - 1);
+        int end_idx = std::min(last_idx + 3, token_size);
+
+        for(int i = 0; i < start_idx; ++i){
+            unaffected_pairs.emplace(word_tokens[i], word_tokens[i + 1]);
+        }
+
+        for(int i = end_idx - 1; i < token_size_minus_1; ++i){
+            unaffected_pairs.emplace(word_tokens[i], word_tokens[i + 1]);
+        }
+
+        // c++ 20 support span, but we use only c++ 17
+        const int * affected_tokens = word_tokens.data() + start_idx;
+        int affected_tokens_len = end_idx - start_idx;
+
+        for(int i = 0; i < affected_tokens_len - 1; ++i){
+            std::pair<int, int> old_pair(affected_tokens[i], affected_tokens[i + 1]);
+            diff_pairs[old_pair] -= wc;
+            if (unaffected_pairs.find(old_pair) == unaffected_pairs.end()) {
+                pair_wordids[old_pair].erase(wordid);
+            }
+        }
+
+        std::vector<int> new_tokens;
+        std::vector<int> all_new_tokens;
+        for(int i = 0; i < start_idx; ++i){
+            all_new_tokens.push_back(word_tokens[i]);
+        }
+
+        int i = 0;
+
+        while(i < affected_tokens_len){
+            if(i < affected_tokens_len - 1 &&
+                    affected_tokens[i] == merge_pair.first &&
+                    affected_tokens[i + 1] == merge_pair.second){
+                new_tokens.push_back(new_id);
+                all_new_tokens.push_back(new_id);
+                i += 2;
+            }else{
+                new_tokens.push_back(affected_tokens[i]);
+                all_new_tokens.push_back(affected_tokens[i]);
+                ++i;
+            }
+        }
+
+        for(int i = end_idx; i < token_size; ++i){
+            all_new_tokens.push_back(word_tokens[i]);
+        }
+
+        wordid_encodings[wordid] = std::move(all_new_tokens);
+
+        for(int i = 0; i < new_tokens.size() - 1; ++i){
+            std::pair<int, int> new_pair(new_tokens[i], new_tokens[i + 1]);
+            diff_pairs[new_pair] += wc;
+            pair_wordids[new_pair].insert(wordid);
+
+        }
+        
+        
+    }
+}
+
+void updated_affected_word_count_v6(const std::pair<int, int>& merge_pair,
+        const emhash9::HashSet<int>& affected_words, 
+        std::unordered_map<int, std::vector<int>> & wordid_encodings, 
+        const std::unordered_map<int, long long> & wordid_counts,
+        emhash8::HashMap<std::pair<int, int>, int, pair_hash> & pair_counts, 
+        emhash8::HashMap<std::pair<int, int>, emhash9::HashSet<int>, pair_hash> & pair_wordids, 
+        int new_id,
+        std::unordered_map<std::pair<int, int>, std::vector<std::vector<int>>, pair_hash> & pair_strings, 
+        std::unordered_map<int, std::vector<int>> & vocabulary,
+        std::vector<HeapItem>& pair_heap){
+    const emhash9::HashSet<int> affected_words_copy(affected_words);
+    
+    std::unordered_map<std::pair<int, int>, int, pair_hash> diff_pairs;
+
+    fine_grained_pair_counter_diff_v6(affected_words_copy, wordid_encodings, wordid_counts, 
+                                        merge_pair, new_id, pair_wordids, diff_pairs);
+
+    for(const auto& [pair, count] : diff_pairs){
+        if(count == 0){
+            continue;
+        }
+        int& c = (pair_counts[pair] += count);
+        if(count > 0){
+            pair_strings[pair] = {vocabulary[pair.first], vocabulary[pair.second]};   
+            heappush(pair_heap, {c, pair_strings[pair], pair});
+        }
+        if(c <= 0){
+             pair_counts.erase(pair);
+             pair_wordids.erase(pair);
+        }
+    }
+
+}
+
+
+void bpe_train_step2_v6(int vocab_size,          
+                std::unordered_map<int, std::vector<int>> & vocabulary, 
+                const std::unordered_map<int, long long> & wordid_counts, 
+                std::unordered_map<int, std::vector<int>> & wordid_encodings, 
+                std::vector<std::pair<std::vector<int>, std::vector<int>>> & merges){
+    std::unordered_map<std::pair<int, int>, std::vector<std::vector<int>>, pair_hash> pair_strings;
+    emhash8::HashMap<std::pair<int, int>, int, pair_hash>  pair_counts;
+    emhash8::HashMap<std::pair<int, int>, emhash9::HashSet<int>, pair_hash>  pair_wordids;
+
+    
+
+    std::pair<int, int> pair;
+    for(const auto& [wordid, count] : wordid_counts){
+        const auto& word_tokens = wordid_encodings[wordid];
+        for(int i = 0; i < word_tokens.size() - 1; ++i){
+            pair.first = word_tokens[i];
+            pair.second = word_tokens[i + 1];
+            pair_counts[pair] += count;
+            if (pair_strings.find(pair) == pair_strings.end()) {
+                pair_strings[pair] = {vocabulary[pair.first], vocabulary[pair.second]};
+            }
+            pair_wordids[pair].insert(wordid);
+        }
+    }
+    
+    auto start = std::chrono::steady_clock::now();
+
+    std::vector<HeapItem> pair_heap;
+    for(const auto&[pair, count] : pair_counts){
+        pair_heap.push_back({count, pair_strings[pair], pair});
+    }
+    heapify(pair_heap);
+
+    while(vocabulary.size() < vocab_size){
+        int max_count = -1;
+        std::pair<int, int> max_pair;
+        std::vector<std::vector<int>> max_strings;
+
+        while(!pair_heap.empty()){
+            HeapItem item = heappop(pair_heap);
+            auto it = pair_counts.find(item.pair);
+            if(it != pair_counts.end()){
+                if(it->second == item.count){
+                    max_count = item.count;
+                    max_pair = item.pair;
+                    max_strings = item.pair_string;
+                    break;
+                }else{
+                    heappush(pair_heap, {it->second, item.pair_string, item.pair});
+                }
+            }
+        }
+        if(max_count == -1){
+            throw std::runtime_error("algorithm bug"); 
+        }
+        
+        auto update_start = std::chrono::steady_clock::now();
+        const std::vector<int>& bytes1 = vocabulary[max_pair.first];
+        const std::vector<int>& bytes2 = vocabulary[max_pair.second];
+        std::vector<int> merge_bytes;
+        merge_bytes.reserve(bytes1.size() + bytes2.size());
+        merge_bytes.insert(merge_bytes.end(), bytes1.begin(), bytes1.end());
+        merge_bytes.insert(merge_bytes.end(), bytes2.begin(), bytes2.end());
+
+        int size = vocabulary.size();
+        vocabulary[size] = merge_bytes;
+
+        auto& affected_words = pair_wordids[max_pair];
+
+        
+        updated_affected_word_count_v6(max_pair, affected_words, wordid_encodings, wordid_counts,
+                                    pair_counts, pair_wordids, size, pair_strings, vocabulary, pair_heap);
+  
+        merges.push_back({bytes1, bytes2});
+
+    }
+
+    auto end = std::chrono::steady_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+    std::cout << "bpe_train_step2: " << duration.count() << "ms." << std::endl;
+}

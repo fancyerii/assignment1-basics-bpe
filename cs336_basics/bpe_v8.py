@@ -54,19 +54,27 @@ class BPE_Trainer():
 
         pair_strings = {}
         pair_to_words = defaultdict(set)
+        start_time = time.perf_counter()
         pair_counts = BPE_Trainer._count_pairs(word_counts, word_encodings, pair_strings, vocabulary, pair_to_words)
+        end_time = time.perf_counter()
+        print(f"_count_pairs: {end_time - start_time:.2f}s")
 
+        start_time = time.perf_counter()
         pair_heap = []
         for pair, count in pair_counts.items():
             maxheap.heappush(pair_heap, (count, pair_strings[pair], pair))
+        end_time = time.perf_counter()
+        print(f"make heap: {end_time - start_time:.2f}s")
 
+        start_time = time.perf_counter()
         while size < vocab_size:
             BPE_Trainer._merge_a_pair(pair_counts, pair_strings, vocabulary,
                                    pair_to_words, word_counts, word_encodings,
                                    merges, size, pair_heap)
             size += 1
-      
-        
+        end_time = time.perf_counter()
+        print(f"merge time: {end_time - start_time}")         
+
         return vocabulary, merges
 
     @staticmethod
@@ -106,6 +114,7 @@ class BPE_Trainer():
         merges.append((vocabulary[merge_pair[0]], vocabulary[merge_pair[1]]))
 
 
+
     @staticmethod
     def _updated_affected_word_count(merge_pair, affected_words, word_encodings, 
                                      word_counts, pair_counts, pair_to_words, 
@@ -128,8 +137,9 @@ class BPE_Trainer():
         for new_pair in new_pairs:
             if new_pair not in pair_strings:
                 pair_strings[new_pair] = (vocabulary[new_pair[0]], vocabulary[new_pair[1]])
-
+                
             maxheap.heappush(pair_heap, (pair_counts[new_pair], pair_strings[new_pair], new_pair))
+
 
     @staticmethod    
     def _count_pairs(word_counts, word_encodings, pair_strings, vocabulary, pair_to_words):

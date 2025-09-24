@@ -72,7 +72,7 @@ class BPE_Trainer():
                                    merges, size, pair_heap)
             size += 1
         end_time = time.perf_counter()
-        print(f"merge time: {end_time - start_time}")               
+        print(f"merge time: {end_time - start_time}")              
         
         return vocabulary, merges
 
@@ -113,7 +113,7 @@ class BPE_Trainer():
 
 
     @staticmethod
-    def fine_grained_pair_counter_diff(affected_words, word_encodings, word_counts, merge_pair, diff_pairs, new_id, pair_to_words, new_pairs):
+    def fine_grained_pair_counter_diff(affected_words, word_encodings, word_counts, merge_pair, diff_pairs, new_id, pair_to_words):
         for word in affected_words:
             word_tokens = word_encodings[word]
             wc = word_counts[word]
@@ -193,7 +193,6 @@ class BPE_Trainer():
                 diff_pairs[new_pair] += wc
                 pair_to_words[new_pair].add(word)
 
-                new_pairs.add(new_pair)
 
 
     @staticmethod
@@ -204,23 +203,18 @@ class BPE_Trainer():
         affected_words = affected_words.copy()
         diff_pairs = defaultdict(int)
 
-        new_pairs = set() 
         BPE_Trainer.fine_grained_pair_counter_diff(affected_words, word_encodings, word_counts, merge_pair, diff_pairs, 
-                             new_id, pair_to_words, new_pairs)
+                             new_id, pair_to_words)
         for pair, count in diff_pairs.items():
             if count == 0: continue
             pair_counts[pair] += count
+            if count > 0: # new pair
+                pair_strings[pair] = (vocabulary[pair[0]], vocabulary[pair[1]])
+                maxheap.heappush(pair_heap, (pair_counts[pair], pair_strings[pair], pair))
+            
             if pair_counts[pair] <= 0: # should not less than 0!
                 del pair_counts[pair]
                 pair_to_words.pop(pair, None)
-
-
-        for new_pair in new_pairs:
-            if new_pair not in pair_strings:
-                pair_strings[new_pair] = (vocabulary[new_pair[0]], vocabulary[new_pair[1]])
-                
-            maxheap.heappush(pair_heap, (pair_counts[new_pair], pair_strings[new_pair], new_pair))
-
 
     @staticmethod    
     def _count_pairs(word_counts, word_encodings, pair_strings, vocabulary, pair_to_words):

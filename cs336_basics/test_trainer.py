@@ -62,7 +62,13 @@ def main():
                  'bpe_v7_time',
                  'bpe_v7_time2',
                  'bpe_v7_maxheapc_time',
-                 'bpe_v7_maxheapc_opt_time'
+                 'bpe_v7_maxheapc_opt_time',
+                 'bpe_v11_v4',
+                 'bpe_v11_v4_bytes',
+                 'bpe_v8_v3',
+                 'bpe_v8_v4',
+                 'bpe_v7_maxheapc_opt',
+                 'bpe_v7_opt',
                 ],
     )  
 
@@ -162,6 +168,18 @@ def main():
             from cs336_basics.bpe_v7_maxheapc_time import BPE_Trainer
         case "bpe_v7_maxheapc_opt_time":
             from cs336_basics.bpe_v7_maxheapc_opt_time import BPE_Trainer
+        case "bpe_v11_v4":
+            from cs336_basics.bpe_v11_v4 import BPE_Trainer
+        case "bpe_v11_v4_bytes":
+            from cs336_basics.bpe_v11_v4_bytes import BPE_Trainer
+        case "bpe_v8_v3":
+            from cs336_basics.bpe_v8_v3 import BPE_Trainer
+        case "bpe_v8_v4":
+            from cs336_basics.bpe_v8_v4 import BPE_Trainer
+        case "bpe_v7_maxheapc_opt":
+            from cs336_basics.bpe_v7_maxheapc_opt import BPE_Trainer
+        case "bpe_v7_opt":
+            from cs336_basics.bpe_v7_opt import BPE_Trainer
 
     bpe_trainer = BPE_Trainer()
     

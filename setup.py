@@ -27,9 +27,13 @@ setup(
     packages=['cs336_basics'],
     name='cs336_basics.bpe_updater',
     ext_modules=cythonize("cs336_basics/bpe_updater.pyx"),
-
 )
 
+setup(
+    packages=['cs336_basics'],
+    name='cs336_basics.bpe_updater_v2',
+    ext_modules=cythonize("cs336_basics/bpe_updater_v2.pyx"),
+)
 
 ext_modules = [
     Extension(

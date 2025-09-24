@@ -47,3 +47,9 @@ void bpe_train_step2_v5(int vocab_size,
                 const std::unordered_map<int, long long> & wordid_counts, 
                 std::unordered_map<int, std::vector<int>> & wordid_encodings, 
                 std::vector<std::pair<std::vector<int>, std::vector<int>>> & merges);  
+
+void bpe_train_step2_v6(int vocab_size,          
+                std::unordered_map<int, std::vector<int>> & vocabulary, 
+                const std::unordered_map<int, long long> & wordid_counts, 
+                std::unordered_map<int, std::vector<int>> & wordid_encodings, 
+                std::vector<std::pair<std::vector<int>, std::vector<int>>> & merges);  
